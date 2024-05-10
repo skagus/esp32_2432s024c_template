@@ -253,7 +253,6 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Install panel IO");
     esp_lcd_panel_io_handle_t io_handle = NULL;
-#if CONFIG_EXAMPLE_LCD_TOUCH_CONTROLLER_STMPE610
     esp_lcd_panel_io_spi_config_t io_config =
 	{
         .dc_gpio_num = EXAMPLE_PIN_NUM_LCD_DC,
@@ -268,7 +267,6 @@ void app_main(void)
     };
     // Attach the LCD to the SPI bus
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &io_config, &io_handle));
-#endif
 
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_panel_dev_config_t panel_config =
