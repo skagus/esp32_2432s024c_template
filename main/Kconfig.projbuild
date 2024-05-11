@@ -33,7 +33,7 @@ menu "Example Configuration"
         config EXAMPLE_LCD_TOUCH_CONTROLLER_CST816S
             bool "CST816S"
             help
-                Touch controller STMPE610 connected via SPI.
+                Touch controller CST816s(CST8xx??) connected via SPI.
     endchoice
 
 endmenu
