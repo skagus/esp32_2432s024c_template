@@ -9,80 +9,226 @@
 #include "lvgl.h"
 #include "stdio.h"
 
-static lv_obj_t* meter;
-static lv_obj_t* btn;
-static lv_disp_rot_t rotation = LV_DISP_ROT_NONE;
+/*********************
+ *      DEFINES
+ *********************/
 
-static void set_value(void* indic,int32_t v)
-{
-	lv_meter_set_indicator_end_value(meter,indic,v);
-}
+ /**********************
+  *      TYPEDEFS
+  **********************/
 
-static void btn_cb(lv_event_t* e)
+  /**********************
+   *  STATIC PROTOTYPES
+   **********************/
+static void selectors_create(lv_obj_t* parent);
+static void text_input_create(lv_obj_t* parent);
+static void msgbox_create(void);
+
+static void msgbox_event_cb(lv_event_t* e);
+static void ta_event_cb(lv_event_t* e);
+
+/**********************
+ *  STATIC VARIABLES
+ **********************/
+static lv_group_t* g;
+static lv_obj_t* tv;
+static lv_obj_t* t1;
+static lv_obj_t* t2;
+
+/**********************
+ *      MACROS
+ **********************/
+
+ /**********************
+  *   GLOBAL FUNCTIONS
+  **********************/
+
+void lv_demo_keypad_encoder(void)
 {
-	lv_disp_t* disp = lv_event_get_user_data(e);
-	rotation++;
-	printf("Rotation: %d\n",rotation);
-	if(rotation > LV_DISP_ROT_270) {
-		rotation = LV_DISP_ROT_NONE;
+	g = lv_group_get_default();
+	if(g == NULL) {
+		g = lv_group_create();
+		lv_group_set_default(g);
 	}
-	lv_disp_set_rotation(disp,rotation);
+
+	lv_indev_t* cur_drv = NULL;
+	for(;;) {
+		cur_drv = lv_indev_get_next(cur_drv);
+		if(!cur_drv) {
+			break;
+		}
+
+		if(cur_drv->driver->type == LV_INDEV_TYPE_KEYPAD) {
+			lv_indev_set_group(cur_drv,g);
+		}
+
+		if(cur_drv->driver->type == LV_INDEV_TYPE_ENCODER) {
+			lv_indev_set_group(cur_drv,g);
+		}
+	}
+
+	tv = lv_tabview_create(lv_scr_act(),LV_DIR_TOP,LV_DPI_DEF / 3);
+
+	t1 = lv_tabview_add_tab(tv,"Selectors");
+	t2 = lv_tabview_add_tab(tv,"Text input");
+
+	selectors_create(t1);
+	text_input_create(t2);
+
+	msgbox_create();
 }
+
+void lv_demo_keypad_encoder_close(void)
+{
+	lv_obj_clean(lv_scr_act());
+	lv_obj_clean(lv_layer_top());
+}
+
+/**********************
+ *   STATIC FUNCTIONS
+ **********************/
+
+static void selectors_create(lv_obj_t* parent)
+{
+	lv_obj_set_flex_flow(parent,LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(parent,LV_FLEX_ALIGN_START,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);
+
+	lv_obj_t* obj;
+
+	obj = lv_table_create(parent);
+	lv_table_set_cell_value(obj,0,0,"00");
+	lv_table_set_cell_value(obj,0,1,"01");
+	lv_table_set_cell_value(obj,1,0,"10");
+	lv_table_set_cell_value(obj,1,1,"11");
+	lv_table_set_cell_value(obj,2,0,"20");
+	lv_table_set_cell_value(obj,2,1,"21");
+	lv_table_set_cell_value(obj,3,0,"30");
+	lv_table_set_cell_value(obj,3,1,"31");
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_calendar_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_btnmatrix_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_checkbox_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_slider_create(parent);
+	lv_slider_set_range(obj,0,10);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_switch_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_spinbox_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_dropdown_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	obj = lv_roller_create(parent);
+	lv_obj_add_flag(obj,LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+
+	lv_obj_t* list = lv_list_create(parent);
+	lv_obj_update_layout(list);
+
+	if(lv_obj_get_height(list) > lv_obj_get_content_height(parent))
+	{
+		lv_obj_set_height(list,lv_obj_get_content_height(parent));
+	}
+
+	lv_list_add_btn(list,LV_SYMBOL_OK,"Apply");
+	lv_list_add_btn(list,LV_SYMBOL_CLOSE,"Close");
+	lv_list_add_btn(list,LV_SYMBOL_EYE_OPEN,"Show");
+	lv_list_add_btn(list,LV_SYMBOL_EYE_CLOSE,"Hide");
+	lv_list_add_btn(list,LV_SYMBOL_TRASH,"Delete");
+	lv_list_add_btn(list,LV_SYMBOL_COPY,"Copy");
+	lv_list_add_btn(list,LV_SYMBOL_PASTE,"Paste");
+}
+
+static void text_input_create(lv_obj_t* parent)
+{
+	lv_obj_set_flex_flow(parent,LV_FLEX_FLOW_COLUMN);
+
+	lv_obj_t* ta1 = lv_textarea_create(parent);
+	lv_obj_set_width(ta1,LV_PCT(100));
+	lv_textarea_set_one_line(ta1,true);
+	lv_textarea_set_placeholder_text(ta1,"Click with an encoder to show a keyboard");
+
+	lv_obj_t* ta2 = lv_textarea_create(parent);
+	lv_obj_set_width(ta2,LV_PCT(100));
+	lv_textarea_set_one_line(ta2,true);
+	lv_textarea_set_placeholder_text(ta2,"Type something");
+
+	lv_obj_t* kb = lv_keyboard_create(lv_scr_act());
+	lv_obj_add_flag(kb,LV_OBJ_FLAG_HIDDEN);
+
+	lv_obj_add_event_cb(ta1,ta_event_cb,LV_EVENT_ALL,kb);
+	lv_obj_add_event_cb(ta2,ta_event_cb,LV_EVENT_ALL,kb);
+}
+
+static void msgbox_create(void)
+{
+	static const char* btns[] = {"Ok","Cancel",""};
+	lv_obj_t* mbox = lv_msgbox_create(NULL,"Hi","Welcome to the keyboard and encoder demo",btns,false);
+	lv_obj_add_event_cb(mbox,msgbox_event_cb,LV_EVENT_ALL,NULL);
+	lv_group_focus_obj(lv_msgbox_get_btns(mbox));
+	lv_obj_add_state(lv_msgbox_get_btns(mbox),LV_STATE_FOCUS_KEY);
+	lv_group_focus_freeze(g,true);
+
+	lv_obj_align(mbox,LV_ALIGN_CENTER,0,0);
+
+	lv_obj_t* bg = lv_obj_get_parent(mbox);
+	lv_obj_set_style_bg_opa(bg,LV_OPA_70,0);
+	lv_obj_set_style_bg_color(bg,lv_palette_main(LV_PALETTE_GREY),0);
+}
+
+static void msgbox_event_cb(lv_event_t* e)
+{
+	lv_event_code_t code = lv_event_get_code(e);
+	lv_obj_t* msgbox = lv_event_get_current_target(e);
+
+	if(code == LV_EVENT_VALUE_CHANGED) {
+		const char* txt = lv_msgbox_get_active_btn_text(msgbox);
+		if(txt) {
+			lv_msgbox_close(msgbox);
+			lv_group_focus_freeze(g,false);
+			lv_group_focus_obj(lv_obj_get_child(t1,0));
+			lv_obj_scroll_to(t1,0,0,LV_ANIM_OFF);
+
+		}
+	}
+}
+
+static void ta_event_cb(lv_event_t* e)
+{
+	lv_indev_t* indev = lv_indev_get_act();
+	if(indev == NULL) return;
+	lv_indev_type_t indev_type = lv_indev_get_type(indev);
+
+	lv_event_code_t code = lv_event_get_code(e);
+	lv_obj_t* ta = lv_event_get_target(e);
+	lv_obj_t* kb = lv_event_get_user_data(e);
+
+	if(code == LV_EVENT_CLICKED && indev_type == LV_INDEV_TYPE_ENCODER) {
+		lv_keyboard_set_textarea(kb,ta);
+		lv_obj_clear_flag(kb,LV_OBJ_FLAG_HIDDEN);
+		lv_group_focus_obj(kb);
+		lv_group_set_editing(lv_obj_get_group(kb),kb);
+		lv_obj_set_height(tv,LV_VER_RES / 2);
+		lv_obj_align(kb,LV_ALIGN_BOTTOM_MID,0,0);
+	}
+
+	if(code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
+		lv_obj_add_flag(kb,LV_OBJ_FLAG_HIDDEN);
+		lv_obj_set_height(tv,LV_VER_RES);
+	}
+}
+
 
 void example_lvgl_demo_ui(lv_disp_t* disp)
 {
-	lv_obj_t* scr = lv_disp_get_scr_act(disp);
-	meter = lv_meter_create(scr);
-	lv_obj_center(meter);
-	lv_obj_set_size(meter,200,200);
-
-	/*Add a scale first*/
-	lv_meter_scale_t* scale = lv_meter_add_scale(meter);
-	lv_meter_set_scale_ticks(meter,scale,41,2,10,lv_palette_main(LV_PALETTE_GREY));
-	lv_meter_set_scale_major_ticks(meter,scale,8,4,15,lv_color_black(),10);
-
-	lv_meter_indicator_t* indic;
-
-	/*Add a blue arc to the start*/
-	indic = lv_meter_add_arc(meter,scale,3,lv_palette_main(LV_PALETTE_BLUE),0);
-	lv_meter_set_indicator_start_value(meter,indic,0);
-	lv_meter_set_indicator_end_value(meter,indic,20);
-
-	/*Make the tick lines blue at the start of the scale*/
-	indic = lv_meter_add_scale_lines(meter,scale,lv_palette_main(LV_PALETTE_BLUE),lv_palette_main(LV_PALETTE_BLUE),false,0);
-	lv_meter_set_indicator_start_value(meter,indic,0);
-	lv_meter_set_indicator_end_value(meter,indic,20);
-
-	/*Add a red arc to the end*/
-	indic = lv_meter_add_arc(meter,scale,3,lv_palette_main(LV_PALETTE_RED),0);
-	lv_meter_set_indicator_start_value(meter,indic,80);
-	lv_meter_set_indicator_end_value(meter,indic,100);
-
-	/*Make the tick lines red at the end of the scale*/
-	indic = lv_meter_add_scale_lines(meter,scale,lv_palette_main(LV_PALETTE_RED),lv_palette_main(LV_PALETTE_RED),false,0);
-	lv_meter_set_indicator_start_value(meter,indic,80);
-	lv_meter_set_indicator_end_value(meter,indic,100);
-
-	/*Add a needle line indicator*/
-	indic = lv_meter_add_needle_line(meter,scale,4,lv_palette_main(LV_PALETTE_GREY),-10);
-
-	btn = lv_btn_create(scr);
-	lv_obj_t* lbl = lv_label_create(btn);
-	lv_label_set_text_static(lbl,LV_SYMBOL_REFRESH" ROTATE");
-	lv_obj_align(btn,LV_ALIGN_BOTTOM_LEFT,30,-30);
-	/*Button event*/
-	lv_obj_add_event_cb(btn,btn_cb,LV_EVENT_CLICKED,disp);
-
-	/*Create an animation to set the value*/
-	lv_anim_t a;
-	lv_anim_init(&a);
-	lv_anim_set_exec_cb(&a,set_value);
-	lv_anim_set_var(&a,indic);
-	lv_anim_set_values(&a,0,100);
-	lv_anim_set_time(&a,2000);
-	lv_anim_set_repeat_delay(&a,100);
-	lv_anim_set_playback_time(&a,500);
-	lv_anim_set_playback_delay(&a,100);
-	lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);
-	lv_anim_start(&a);
+	lv_demo_keypad_encoder();
 }
