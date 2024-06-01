@@ -212,7 +212,9 @@ static void ta_event_cb(lv_event_t* e)
 	lv_obj_t* ta = lv_event_get_target(e);
 	lv_obj_t* kb = lv_event_get_user_data(e);
 
-	if(code == LV_EVENT_CLICKED && indev_type == LV_INDEV_TYPE_ENCODER) {
+	if((code == LV_EVENT_CLICKED && indev_type == LV_INDEV_TYPE_ENCODER)
+		|| (code == LV_EVENT_PRESSED))
+	{
 		lv_keyboard_set_textarea(kb,ta);
 		lv_obj_clear_flag(kb,LV_OBJ_FLAG_HIDDEN);
 		lv_group_focus_obj(kb);
